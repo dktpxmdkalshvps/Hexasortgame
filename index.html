@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexa Sort</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1a1a2e;
+    --bg2: #16213e;
+    --surface: #0f3460;
+    --surface2: #1a1a3e;
+    --text: #e0e0f0;
+    --text2: #9090b0;
+    --text3: #5a5a7a;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --accent: #378ADD;
+    --radius: 10px;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 520px;
+    padding: 16px 12px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 4px;
+    border-bottom: 0.5px solid var(--border2);
+  }
+
+  header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+
+  header h1 span { color: var(--accent); }
+
+  #topbar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .stat {
+    flex: 1;
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    text-align: center;
+  }
+
+  .stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-size: 20px; font-weight: 600; color: var(--text); }
+
+  #board-cv {
+    display: block;
+    cursor: pointer;
+    border-radius: 12px;
+    max-width: 100%;
+  }
+
+  #queue-label {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+
+  #queue-area {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: flex-end;
+    min-height: 88px;
+    width: 100%;
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+  }
+
+  .qslot {
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 4px;
+    border: 1.5px solid transparent;
+    transition: border-color .15s, transform .1s;
+    flex-shrink: 0;
+  }
+
+  .qslot:hover { transform: translateY(-2px); }
+  .qslot.selected { border-color: var(--accent); }
+  .qslot.used { opacity: 0.2; pointer-events: none; }
+
+  #msg {
+    font-size: 13px;
+    color: var(--text2);
+    min-height: 20px;
+    text-align: center;
+    padding: 0 8px;
+  }
+
+  #btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+  button {
+    background: transparent;
+    border: 0.5px solid var(--border2);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 18px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s, transform .1s;
+  }
+
+  button:hover { background: var(--surface); }
+  button:active { transform: scale(0.97); }
+
+  #best-label {
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  #gameover-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(10,10,20,0.82);
+    border-radius: 12px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 10;
+  }
+
+  #gameover-overlay.show { display: flex; }
+  #gameover-overlay h2 { font-size: 22px; color: var(--text); }
+  #gameover-overlay p { font-size: 14px; color: var(--text2); }
+
+  #board-wrap { position: relative; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Hexa<span>Sort</span></h1>
+    <span id="best-label">최고: <span id="s-best">0</span></span>
+  </header>
+
+  <div id="topbar">
+    <div class="stat"><div class="stat-label">점수</div><div class="stat-value" id="s-score">0</div></div>
+    <div class="stat"><div class="stat-label">콤보</div><div class="stat-value" id="s-combo">x1</div></div>
+    <div class="stat"><div class="stat-label">빈 칸</div><div class="stat-value" id="s-free">0</div></div>
+  </div>
+
+  <div id="board-wrap">
+    <canvas id="board-cv" width="460" height="400"></canvas>
+    <div id="gameover-overlay">
+      <h2>게임 오버</h2>
+      <p id="go-score"></p>
+      <button id="go-restart">다시 시작</button>
+    </div>
+  </div>
+
+  <div id="queue-label">— 다음 배치할 스택 —</div>
+  <div id="queue-area"></div>
+
+  <div id="msg">스택을 선택하고 빈 칸에 놓으세요</div>
+
+  <div id="btns">
+    <button id="new-btn">새 게임</button>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('board-cv');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+
+const R = 34;
+const MERGE_AT = 5;
+const QUEUE_SIZE = 3;
+
+const CMAP = {
+  R: '#E24B4A',
+  B: '#378ADD',
+  G: '#639922',
+  Y: '#EF9F27',
+  P: '#D4537E',
+  T: '#1D9E75',
+  V: '#7F77DD',
+};
+const CKEYS = Object.keys(CMAP);
+
+const HEX_GRID = [
+  [0,-2],[1,-2],[2,-2],
+  [-1,-1],[0,-1],[1,-1],[2,-1],[3,-1],
+  [-2,0],[-1,0],[0,0],[1,0],[2,0],[3,0],[4,0],
+  [-1,1],[0,1],[1,1],[2,1],[3,1],
+  [0,2],[1,2],[2,2],
+];
+
+function hexXY(q, r) {
+  const x = W/2 + R * Math.sqrt(3) * (q + r * 0.5) - R * Math.sqrt(3) * 2;
+  const y = H/2 + R * 1.5 * r - 10;
+  return { x, y };
+}
+
+function hexNeighbors(q, r) {
+  return [[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]].map(([dq,dr]) => [q+dq, r+dr]);
+}
+
+function cellKey(q, r) { return q + ',' + r; }
+
+let cells = {}, queue = [], selectedQ = null;
+let score = 0, combo = 0, gameOver = false, hoverCell = null;
+let best = parseInt(localStorage.getItem('hexasort_best') || '0');
+
+function saveBest() {
+  if (score > best) {
+    best = score;
+    localStorage.setItem('hexasort_best', best);
+  }
+  document.getElementById('s-best').textContent = best;
+}
+
+function initCells() {
+  cells = {};
+  HEX_GRID.forEach(([q, r]) => { cells[cellKey(q,r)] = { q, r, stack: [] }; });
+}
+
+function shuffle(a) {
+  for (let i = a.length-1; i > 0; i--) {
+    const j = 0|Math.random()*(i+1);
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function makeStack(maxH) {
+  const h = 1 + (0|Math.random()*maxH);
+  return Array.from({length: h}, () => CKEYS[0|Math.random()*CKEYS.length]);
+}
+
+function genQueue() {
+  queue = Array.from({length: QUEUE_SIZE}, () => ({ stack: makeStack(3), used: false }));
+}
+
+function freeCount() {
+  return Object.values(cells).filter(c => c.stack.length === 0).length;
+}
+
+function drawHexPath(cx, cy, r) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI/3*i - Math.PI/6;
+    i === 0 ? ctx.moveTo(cx + r*Math.cos(a), cy + r*Math.sin(a))
+            : ctx.lineTo(cx + r*Math.cos(a), cy + r*Math.sin(a));
+  }
+  ctx.closePath();
+}
+
+function drawOneHex(cx, cy, r, fill, stroke, sw) {
+  drawHexPath(cx, cy, r);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = stroke || 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = sw || 1;
+  ctx.stroke();
+}
+
+function drawStackAt(cx, cy, stack, highlight) {
+  const n = stack.length;
+  const step = 5;
+  const baseY = cy + (n-1)*step/2;
+
+  const bgFill = highlight === 'hover' ? 'rgba(55,138,221,0.18)'
+               : highlight === 'done'  ? 'rgba(29,158,117,0.18)'
+               : 'rgba(255,255,255,0.04)';
+  const bgStroke = highlight === 'done' ? 'rgba(29,158,117,0.6)'
+                 : highlight ? 'rgba(55,138,221,0.6)' : 'rgba(255,255,255,0.1)';
+  drawOneHex(cx, cy, R, bgFill, bgStroke, highlight ? 1.5 : 0.5);
+
+  for (let i = 0; i < n; i++) {
+    const iy = baseY - i*step;
+    drawOneHex(cx, iy, R-5, CMAP[stack[i]], 'rgba(255,255,255,0.2)', 1.2);
+    if (n > 1 && i === n-1) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = '600 10px -apple-system,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(n, cx, iy);
+    }
+  }
+
+  if (highlight === 'done') {
+    drawHexPath(cx, cy, R+3);
+    ctx.strokeStyle = '#1D9E75';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+}
+
+let floatingPts = [];
+
+function spawnPts(cx, cy, pts) {
+  floatingPts.push({ cx, cy, pts, age: 0 });
+}
+
+function renderFloating() {
+  floatingPts = floatingPts.filter(f => f.age < 40);
+  floatingPts.forEach(f => {
+    ctx.globalAlpha = 1 - f.age/40;
+    ctx.fillStyle = '#EF9F27';
+    ctx.font = '700 13px -apple-system,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('+' + f.pts, f.cx, f.cy - f.age * 1.2);
+    ctx.globalAlpha = 1;
+    f.age++;
+  });
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  Object.values(cells).forEach(cell => {
+    const { x, y } = hexXY(cell.q, cell.r);
+    const isHover = hoverCell === cellKey(cell.q, cell.r) && selectedQ !== null;
+    const isDone = cell.stack.length >= MERGE_AT && cell.stack.every(c => c === cell.stack[0]);
+    drawStackAt(x, y, cell.stack, isHover ? 'hover' : isDone ? 'done' : null);
+  });
+  renderFloating();
+  document.getElementById('s-score').textContent = score.toLocaleString();
+  document.getElementById('s-combo').textContent = 'x' + (combo > 0 ? combo + 1 : 1);
+  document.getElementById('s-free').textContent = freeCount();
+}
+
+function renderQueue() {
+  const area = document.getElementById('queue-area');
+  area.innerHTML = '';
+  queue.forEach((q, i) => {
+    if (q.used) {
+      const ghost = document.createElement('div');
+      ghost.style.cssText = 'width:70px;height:76px;opacity:.15;border:1.5px dashed rgba(255,255,255,0.2);border-radius:8px';
+      area.appendChild(ghost);
+      return;
+    }
+    const qcv = document.createElement('canvas');
+    qcv.width = 70; qcv.height = 76;
+    const sc = qcv.getContext('2d');
+    const n = q.stack.length;
+    const step = 4, cx = 35, baseY = 44 + (n-1)*step/2;
+    for (let k = 0; k < n; k++) {
+      const ky = baseY - k*step;
+      sc.beginPath();
+      for (let j = 0; j < 6; j++) {
+        const a = Math.PI/3*j - Math.PI/6;
+        j === 0 ? sc.moveTo(cx+26*Math.cos(a), ky+26*Math.sin(a))
+                : sc.lineTo(cx+26*Math.cos(a), ky+26*Math.sin(a));
+      }
+      sc.closePath();
+      sc.fillStyle = CMAP[q.stack[k]]; sc.fill();
+      sc.strokeStyle = 'rgba(255,255,255,0.2)'; sc.lineWidth = 1; sc.stroke();
+    }
+    if (n > 1) {
+      sc.fillStyle = 'rgba(255,255,255,0.9)';
+      sc.font = '600 10px sans-serif';
+      sc.textAlign = 'center'; sc.textBaseline = 'middle';
+      sc.fillText(n, cx, baseY - (n-1)*step);
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'qslot' + (selectedQ === i ? ' selected' : '');
+    wrap.appendChild(qcv);
+    wrap.addEventListener('click', () => {
+      if (q.used || gameOver) return;
+      selectedQ = (selectedQ === i) ? null : i;
+      document.getElementById('msg').textContent =
+        selectedQ !== null ? '빈 칸을 클릭해 배치하세요' : '스택을 선택하세요';
+      renderQueue(); render();
+    });
+    area.appendChild(wrap);
+  });
+}
+
+function autoMerge(startKey, depth) {
+  if (depth > 20) return 0;
+  const cell = cells[startKey];
+  if (!cell || cell.stack.length === 0) return 0;
+  let total = 0;
+  const topColor = cell.stack[cell.stack.length - 1];
+  let merged = false;
+
+  hexNeighbors(cell.q, cell.r).forEach(([nq, nr]) => {
+    const nk = cellKey(nq, nr);
+    const nc = cells[nk];
+    if (!nc || nc.stack.length === 0) return;
+    if (nc.stack[nc.stack.length-1] !== topColor) return;
+    while (nc.stack.length > 0 && nc.stack[nc.stack.length-1] === topColor) {
+      cell.stack.push(nc.stack.pop());
+      merged = true;
+    }
+  });
+
+  if (cell.stack.length >= MERGE_AT) {
+    const allSame = cell.stack.every(c => c === cell.stack[0]);
+    if (allSame) {
+      const pts = cell.stack.length * 10 * (combo + 1);
+      const { x, y } = hexXY(cell.q, cell.r);
+      spawnPts(x, y - 20, pts);
+      score += pts;
+      combo++;
+      total += cell.stack.length;
+      cell.stack = [];
+    }
+  }
+
+  if (merged) total += autoMerge(startKey, depth + 1);
+  return total;
+}
+
+function placeStack(key) {
+  if (selectedQ === null) return;
+  const cell = cells[key];
+  if (!cell || cell.stack.length > 0) return;
+  const qs = queue[selectedQ];
+  if (qs.used) return;
+
+  [...qs.stack].forEach(c => cell.stack.push(c));
+  qs.used = true;
+  selectedQ = null;
+
+  autoMerge(key, 0);
+  saveBest();
+
+  if (queue.every(q => q.used)) { combo = 0; genQueue(); }
+
+  if (freeCount() === 0 && queue.some(q => !q.used)) {
+    gameOver = true;
+    saveBest();
+    document.getElementById('go-score').textContent = '최종 점수: ' + score.toLocaleString();
+    document.getElementById('gameover-overlay').classList.add('show');
+    document.getElementById('msg').textContent = '';
+  } else if (!gameOver) {
+    document.getElementById('msg').textContent = '스택을 선택하세요';
+  }
+
+  renderQueue(); render();
+}
+
+function getClickedCell(mx, my) {
+  let best = null, bestD = Infinity;
+  Object.values(cells).forEach(cell => {
+    const { x, y } = hexXY(cell.q, cell.r);
+    const d = Math.hypot(mx - x, my - y);
+    if (d < R * 1.05 && d < bestD) { bestD = d; best = cellKey(cell.q, cell.r); }
+  });
+  return best;
+}
+
+cv.addEventListener('mousemove', e => {
+  if (selectedQ === null) { hoverCell = null; return; }
+  const rect = cv.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  const scaleY = H / rect.height;
+  const k = getClickedCell((e.clientX-rect.left)*scaleX, (e.clientY-rect.top)*scaleY);
+  hoverCell = (k && cells[k].stack.length === 0) ? k : null;
+  render();
+});
+
+cv.addEventListener('mouseleave', () => { hoverCell = null; render(); });
+
+cv.addEventListener('click', e => {
+  if (gameOver || selectedQ === null) return;
+  const rect = cv.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  const scaleY = H / rect.height;
+  const k = getClickedCell((e.clientX-rect.left)*scaleX, (e.clientY-rect.top)*scaleY);
+  if (!k) { selectedQ = null; renderQueue(); render(); return; }
+  if (cells[k].stack.length > 0) {
+    document.getElementById('msg').textContent = '빈 칸에만 놓을 수 있어요';
+    return;
+  }
+  placeStack(k);
+});
+
+function preloadBoard() {
+  const pool = [];
+  CKEYS.forEach(c => { for (let i = 0; i < MERGE_AT; i++) pool.push(c); });
+  shuffle(pool);
+  const keys = shuffle(Object.keys(cells)).slice(0, 10);
+  let ci = 0;
+  keys.forEach(key => {
+    const depth = 1 + (0|Math.random()*3);
+    for (let i = 0; i < depth && ci < pool.length; i++) cells[key].stack.push(pool[ci++]);
+  });
+}
+
+function startGame() {
+  initCells();
+  preloadBoard();
+  genQueue();
+  score = 0; combo = 0; selectedQ = null; gameOver = false; hoverCell = null;
+  floatingPts = [];
+  document.getElementById('gameover-overlay').classList.remove('show');
+  document.getElementById('msg').textContent = '스택을 선택하고 빈 칸에 놓으세요';
+  document.getElementById('s-best').textContent = best;
+  render(); renderQueue();
+}
+
+function animLoop() { render(); requestAnimationFrame(animLoop); }
+
+document.getElementById('new-btn').addEventListener('click', startGame);
+document.getElementById('go-restart').addEventListener('click', startGame);
+
+startGame();
+animLoop();
+</script>
+</body>
+</html>
