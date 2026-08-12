@@ -1,0 +1,101 @@
+const fs = require('fs');
+const path = require('path');
+
+// Read the index.html file
+const html = fs.readFileSync(path.resolve(__dirname, './index.html'), 'utf8');
+
+// A more robust extraction logic using AST parser would be better, but given it's just tests
+// we can use string index based matching or match block braces
+function extractFunction(code, functionName) {
+  const startIdx = code.indexOf(`function ${functionName}`);
+  if (startIdx === -1) throw new Error(`Function ${functionName} not found`);
+
+  let openBraces = 0;
+  let endIdx = -1;
+  let started = false;
+
+  for (let i = startIdx; i < code.length; i++) {
+    if (code[i] === '{') {
+      openBraces++;
+      started = true;
+    } else if (code[i] === '}') {
+      openBraces--;
+    }
+
+    if (started && openBraces === 0) {
+      endIdx = i + 1;
+      break;
+    }
+  }
+
+  if (endIdx === -1) throw new Error(`Could not find end of function ${functionName}`);
+  return code.substring(startIdx, endIdx);
+}
+
+// Extract the hexXY function robustly by matching balanced braces
+const funcCode = extractFunction(html, 'hexXY');
+
+// We need W, H, and R values to test
+// Taking values from index.html
+const W = 460;
+const H = 400;
+const R = 34;
+
+// Reconstruct the function for testing
+// The original function has name `hexXY`.
+// We just run its code in a function context and return it.
+const setupCode = `
+  const W = ${W};
+  const H = ${H};
+  const R = ${R};
+  ${funcCode}
+  return hexXY;
+`;
+const hexXY = new Function(setupCode)();
+
+describe('hexXY conversion tests', () => {
+  test('returns correct coordinates for origin (0, 0)', () => {
+    const res = hexXY(0, 0);
+    const expectedX = W/2 - R * Math.sqrt(3) * 2;
+    const expectedY = H/2 - 10;
+
+    expect(res.x).toBeCloseTo(expectedX, 5);
+    expect(res.y).toBeCloseTo(expectedY, 5);
+  });
+
+  test('returns correct coordinates for positive q (1, 0)', () => {
+    const res = hexXY(1, 0);
+    const expectedX = W/2 + R * Math.sqrt(3) * (1) - R * Math.sqrt(3) * 2;
+    const expectedY = H/2 - 10;
+
+    expect(res.x).toBeCloseTo(expectedX, 5);
+    expect(res.y).toBeCloseTo(expectedY, 5);
+  });
+
+  test('returns correct coordinates for positive r (0, 1)', () => {
+    const res = hexXY(0, 1);
+    const expectedX = W/2 + R * Math.sqrt(3) * (0.5) - R * Math.sqrt(3) * 2;
+    const expectedY = H/2 + R * 1.5 - 10;
+
+    expect(res.x).toBeCloseTo(expectedX, 5);
+    expect(res.y).toBeCloseTo(expectedY, 5);
+  });
+
+  test('returns correct coordinates for negative coordinates (-1, -1)', () => {
+    const res = hexXY(-1, -1);
+    const expectedX = W/2 + R * Math.sqrt(3) * (-1 - 0.5) - R * Math.sqrt(3) * 2;
+    const expectedY = H/2 + R * 1.5 * (-1) - 10;
+
+    expect(res.x).toBeCloseTo(expectedX, 5);
+    expect(res.y).toBeCloseTo(expectedY, 5);
+  });
+
+  test('returns correct coordinates for arbitrary off-center (2, -2)', () => {
+    const res = hexXY(2, -2);
+    const expectedX = W/2 + R * Math.sqrt(3) * (2 - 1) - R * Math.sqrt(3) * 2;
+    const expectedY = H/2 + R * 1.5 * (-2) - 10;
+
+    expect(res.x).toBeCloseTo(expectedX, 5);
+    expect(res.y).toBeCloseTo(expectedY, 5);
+  });
+});
