@@ -53,6 +53,12 @@ const setupCode = `
 `;
 const hexXY = new Function(setupCode)();
 
+const funcCodeHexNeighbors = extractFunction(html, 'hexNeighbors');
+const hexNeighbors = new Function(`
+  ${funcCodeHexNeighbors}
+  return hexNeighbors;
+`)();
+
 describe('hexXY conversion tests', () => {
   test('returns correct coordinates for origin (0, 0)', () => {
     const res = hexXY(0, 0);
@@ -97,5 +103,45 @@ describe('hexXY conversion tests', () => {
 
     expect(res.x).toBeCloseTo(expectedX, 5);
     expect(res.y).toBeCloseTo(expectedY, 5);
+  });
+});
+
+describe('hexNeighbors calculation tests', () => {
+  test('returns 6 correct neighbors for origin (0, 0)', () => {
+    const res = hexNeighbors(0, 0);
+    const expected = [[1,0], [-1,0], [0,1], [0,-1], [1,-1], [-1,1]];
+
+    expect(res.length).toBe(6);
+    expect(res).toEqual(expect.arrayContaining(expected));
+  });
+
+  test('returns 6 correct neighbors for positive coordinates (2, 3)', () => {
+    const res = hexNeighbors(2, 3);
+    const expected = [
+      [2+1, 3+0],
+      [2-1, 3+0],
+      [2+0, 3+1],
+      [2+0, 3-1],
+      [2+1, 3-1],
+      [2-1, 3+1]
+    ];
+
+    expect(res.length).toBe(6);
+    expect(res).toEqual(expect.arrayContaining(expected));
+  });
+
+  test('returns 6 correct neighbors for negative coordinates (-1, -2)', () => {
+    const res = hexNeighbors(-1, -2);
+    const expected = [
+      [-1+1, -2+0],
+      [-1-1, -2+0],
+      [-1+0, -2+1],
+      [-1+0, -2-1],
+      [-1+1, -2-1],
+      [-1-1, -2+1]
+    ];
+
+    expect(res.length).toBe(6);
+    expect(res).toEqual(expect.arrayContaining(expected));
   });
 });
