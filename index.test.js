@@ -104,6 +104,38 @@ describe('hexXY conversion tests', () => {
     expect(res.x).toBeCloseTo(expectedX, 5);
     expect(res.y).toBeCloseTo(expectedY, 5);
   });
+
+  test('returns correct coordinates for fractional inputs (1.5, -0.5)', () => {
+    const res = hexXY(1.5, -0.5);
+    const expectedX = W/2 + R * Math.sqrt(3) * (1.5 - 0.25) - R * Math.sqrt(3) * 2;
+    const expectedY = H/2 + R * 1.5 * (-0.5) - 10;
+
+    expect(res.x).toBeCloseTo(expectedX, 5);
+    expect(res.y).toBeCloseTo(expectedY, 5);
+  });
+
+  test('handles extreme large values correctly', () => {
+    const q = 1e6;
+    const r = -1e6;
+    const res = hexXY(q, r);
+    const expectedX = W/2 + R * Math.sqrt(3) * (q + r * 0.5) - R * Math.sqrt(3) * 2;
+    const expectedY = H/2 + R * 1.5 * r - 10;
+
+    expect(res.x).toBeCloseTo(expectedX, 5);
+    expect(res.y).toBeCloseTo(expectedY, 5);
+  });
+
+  test('returns NaN when arguments are missing', () => {
+    const res = hexXY();
+    expect(Number.isNaN(res.x)).toBe(true);
+    expect(Number.isNaN(res.y)).toBe(true);
+  });
+
+  test('returns NaN when invalid data types (strings) are passed', () => {
+    const res = hexXY('foo', 'bar');
+    expect(Number.isNaN(res.x)).toBe(true);
+    expect(Number.isNaN(res.y)).toBe(true);
+  });
 });
 
 describe('hexNeighbors calculation tests', () => {
