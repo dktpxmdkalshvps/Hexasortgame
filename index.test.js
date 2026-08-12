@@ -145,3 +145,64 @@ describe('hexNeighbors calculation tests', () => {
     expect(res).toEqual(expect.arrayContaining(expected));
   });
 });
+
+const funcCodeShuffle = extractFunction(html, 'shuffle');
+const shuffle = new Function(`
+  ${funcCodeShuffle}
+  return shuffle;
+`)();
+
+describe('shuffle function tests', () => {
+  test('returns the same array instance', () => {
+    const arr = [1, 2, 3];
+    const res = shuffle(arr);
+    expect(res).toBe(arr);
+  });
+
+  test('preserves array length', () => {
+    const arr = [1, 2, 3, 4, 5];
+    shuffle(arr);
+    expect(arr.length).toBe(5);
+  });
+
+  test('contains all original elements', () => {
+    const arr = [1, 2, 3, 4, 5];
+    const original = [...arr];
+    shuffle(arr);
+
+    // Sort both to compare content regardless of order
+    const sortedOriginal = [...original].sort();
+    const sortedShuffled = [...arr].sort();
+
+    expect(sortedShuffled).toEqual(sortedOriginal);
+  });
+
+  test('handles empty arrays', () => {
+    const arr = [];
+    shuffle(arr);
+    expect(arr).toEqual([]);
+  });
+
+  test('handles single-element arrays', () => {
+    const arr = [42];
+    shuffle(arr);
+    expect(arr).toEqual([42]);
+  });
+
+  test('actually shuffles the elements (mocking Math.random)', () => {
+    // Mock Math.random to return predictability
+    const originalRandom = Math.random;
+
+    // If Math.random() always returns 0, the j index will always be 0.
+    // For [1, 2, 3]:
+    // i=2, j=0: swap a[2] and a[0] -> [3, 2, 1]
+    // i=1, j=0: swap a[1] and a[0] -> [2, 3, 1]
+    Math.random = jest.fn(() => 0);
+
+    const arr = [1, 2, 3];
+    shuffle(arr);
+    expect(arr).toEqual([2, 3, 1]);
+
+    Math.random = originalRandom;
+  });
+});
