@@ -234,8 +234,10 @@ const HEX_GRID = [
   [0,2],[1,2],[2,2],
 ];
 
+const SQRT3 = Math.sqrt(3);
+
 function hexXY(q, r) {
-  const x = W/2 + R * Math.sqrt(3) * (q + r * 0.5) - R * Math.sqrt(3) * 2;
+  const x = W/2 + R * SQRT3 * (q + r * 0.5) - R * SQRT3 * 2;
   const y = H/2 + R * 1.5 * r - 10;
   return { x, y };
 }

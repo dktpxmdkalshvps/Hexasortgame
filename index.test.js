@@ -48,6 +48,7 @@ const setupCode = `
   const W = ${W};
   const H = ${H};
   const R = ${R};
+  const SQRT3 = Math.sqrt(3);
   ${funcCode}
   return hexXY;
 `;
