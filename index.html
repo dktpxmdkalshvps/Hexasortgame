@@ -374,7 +374,7 @@ function render() {
 
 function renderQueue() {
   const area = document.getElementById('queue-area');
-  area.innerHTML = '';
+  area.textContent = '';
   queue.forEach((q, i) => {
     if (q.used) {
       const ghost = document.createElement('div');
