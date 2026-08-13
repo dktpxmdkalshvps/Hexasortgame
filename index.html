@@ -248,7 +248,7 @@ function hexNeighbors(q, r) {
 
 function cellKey(q, r) { return q + ',' + r; }
 
-let cells = {}, queue = [], selectedQ = null;
+let cells = {}, cellsArray = [], queue = [], selectedQ = null;
 let score = 0, combo = 0, gameOver = false, hoverCell = null;
 let best = parseInt(localStorage.getItem('hexasort_best') || '0');
 
@@ -263,6 +263,7 @@ function saveBest() {
 function initCells() {
   cells = {};
   HEX_GRID.forEach(([q, r]) => { cells[cellKey(q,r)] = { q, r, stack: [] }; });
+  cellsArray = Object.values(cells);
 }
 
 function shuffle(a) {
@@ -283,7 +284,7 @@ function genQueue() {
 }
 
 function freeCount() {
-  return Object.values(cells).filter(c => c.stack.length === 0).length;
+  return cellsArray.filter(c => c.stack.length === 0).length;
 }
 
 function drawHexPath(cx, cy, r) {
@@ -359,7 +360,7 @@ function renderFloating() {
 
 function render() {
   ctx.clearRect(0, 0, W, H);
-  Object.values(cells).forEach(cell => {
+  cellsArray.forEach(cell => {
     const { x, y } = hexXY(cell.q, cell.r);
     const isHover = hoverCell === cellKey(cell.q, cell.r) && selectedQ !== null;
     const isDone = cell.stack.length >= MERGE_AT && cell.stack.every(c => c === cell.stack[0]);
@@ -485,7 +486,7 @@ function placeStack(key) {
 
 function getClickedCell(mx, my) {
   let best = null, bestD = Infinity;
-  Object.values(cells).forEach(cell => {
+  cellsArray.forEach(cell => {
     const { x, y } = hexXY(cell.q, cell.r);
     const d = Math.hypot(mx - x, my - y);
     if (d < R * 1.05 && d < bestD) { bestD = d; best = cellKey(cell.q, cell.r); }
