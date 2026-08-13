@@ -207,6 +207,10 @@ const cv = document.getElementById('board-cv');
 const ctx = cv.getContext('2d');
 const W = cv.width, H = cv.height;
 
+const elScore = document.getElementById('s-score');
+const elCombo = document.getElementById('s-combo');
+const elFree = document.getElementById('s-free');
+
 const R = 34;
 const MERGE_AT = 5;
 const QUEUE_SIZE = 3;
@@ -360,9 +364,9 @@ function render() {
     drawStackAt(x, y, cell.stack, isHover ? 'hover' : isDone ? 'done' : null);
   });
   renderFloating();
-  document.getElementById('s-score').textContent = score.toLocaleString();
-  document.getElementById('s-combo').textContent = 'x' + (combo > 0 ? combo + 1 : 1);
-  document.getElementById('s-free').textContent = freeCount();
+  elScore.textContent = score.toLocaleString();
+  elCombo.textContent = 'x' + (combo > 0 ? combo + 1 : 1);
+  elFree.textContent = freeCount();
 }
 
 function renderQueue() {
