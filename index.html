@@ -268,15 +268,15 @@ function initCells() {
 
 function shuffle(a) {
   for (let i = a.length-1; i > 0; i--) {
-    const j = 0|Math.random()*(i+1);
+    const j = Math.floor(Math.random()*(i+1));
     [a[i],a[j]] = [a[j],a[i]];
   }
   return a;
 }
 
 function makeStack(maxH) {
-  const h = 1 + (0|Math.random()*maxH);
-  return Array.from({length: h}, () => CKEYS[0|Math.random()*CKEYS.length]);
+  const h = 1 + Math.floor(Math.random()*maxH);
+  return Array.from({length: h}, () => CKEYS[Math.floor(Math.random()*CKEYS.length)]);
 }
 
 function genQueue() {
@@ -527,7 +527,7 @@ function preloadBoard() {
   const keys = shuffle(Object.keys(cells)).slice(0, 10);
   let ci = 0;
   keys.forEach(key => {
-    const depth = 1 + (0|Math.random()*3);
+    const depth = 1 + Math.floor(Math.random()*3);
     for (let i = 0; i < depth && ci < pool.length; i++) cells[key].stack.push(pool[ci++]);
   });
 }
