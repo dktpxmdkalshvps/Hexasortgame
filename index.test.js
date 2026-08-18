@@ -179,8 +179,23 @@ describe('hexNeighbors calculation tests', () => {
   });
 });
 
+const funcCodeSecureRandom = extractFunction(html, 'secureRandom');
 const funcCodeShuffle = extractFunction(html, 'shuffle');
+
+// Set up a mock environment for secureRandom to work during testing
 const shuffle = new Function(`
+  const crypto = {
+    getRandomValues: function(arr) {
+      if (globalThis.mockSecureRandomValues !== undefined) {
+        arr[0] = globalThis.mockSecureRandomValues[globalThis.mockSecureRandomIndex++ % globalThis.mockSecureRandomValues.length];
+      } else {
+        // Fallback to Math.random for tests not mocking the values
+        arr[0] = Math.floor(Math.random() * 4294967296);
+      }
+      return arr;
+    }
+  };
+  ${funcCodeSecureRandom}
   ${funcCodeShuffle}
   return shuffle;
 `)();
@@ -222,20 +237,20 @@ describe('shuffle function tests', () => {
     expect(arr).toEqual([42]);
   });
 
-  test('actually shuffles the elements (mocking Math.random)', () => {
-    // Mock Math.random to return predictability
-    const originalRandom = Math.random;
-
-    // If Math.random() always returns 0, the j index will always be 0.
+  test('actually shuffles the elements (mocking secureRandom)', () => {
+    // Mock secureRandom logic
+    // If it always generates 0, the j index will always be 0.
     // For [1, 2, 3]:
     // i=2, j=0: swap a[2] and a[0] -> [3, 2, 1]
     // i=1, j=0: swap a[1] and a[0] -> [2, 3, 1]
-    Math.random = jest.fn(() => 0);
+    globalThis.mockSecureRandomValues = [0];
+    globalThis.mockSecureRandomIndex = 0;
 
     const arr = [1, 2, 3];
     shuffle(arr);
     expect(arr).toEqual([2, 3, 1]);
 
-    Math.random = originalRandom;
+    delete globalThis.mockSecureRandomValues;
+    delete globalThis.mockSecureRandomIndex;
   });
 });
