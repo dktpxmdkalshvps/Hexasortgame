@@ -489,11 +489,14 @@ function placeStack(key) {
 }
 
 function getClickedCell(mx, my) {
-  let best = null, bestD = Infinity;
+  let best = null, bestD2 = Infinity;
+  const threshold2 = (R * 1.05) ** 2;
   cellsArray.forEach(cell => {
     const { x, y } = hexXY(cell.q, cell.r);
-    const d = Math.hypot(mx - x, my - y);
-    if (d < R * 1.05 && d < bestD) { bestD = d; best = cellKey(cell.q, cell.r); }
+    const dx = mx - x;
+    const dy = my - y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < threshold2 && d2 < bestD2) { bestD2 = d2; best = cellKey(cell.q, cell.r); }
   });
   return best;
 }
